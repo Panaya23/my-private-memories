@@ -600,20 +600,34 @@ let albums = ["General"];
 let currentAlbum = "General";
 let favourites = [];
 let currentUser = null;
+let albumFilter = null;
 
 
 // AUTH SCREEN
 
 function showSignup(){
+
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("signupBox").classList.remove("hidden");
     document.getElementById("authMessage").textContent = "";
+
 }
 
 function showLogin(){
+
     document.getElementById("signupBox").classList.add("hidden");
     document.getElementById("loginBox").classList.remove("hidden");
     document.getElementById("authMessage").textContent = "";
+
+}
+
+
+// STATUS
+
+function setStatus(message){
+
+    document.getElementById("status").textContent = message;
+
 }
 
 
@@ -628,37 +642,51 @@ async function signup(){
     const message = document.getElementById("authMessage");
 
     if(!name || !email || !password){
+
         message.textContent = "Please fill all details.";
         return;
+
     }
 
     if(password.length < 6){
+
         message.textContent = "Password must contain at least 6 characters.";
         return;
+
     }
 
     message.textContent = "Creating your account...";
 
     const {data,error} = await db.auth.signUp({
+
         email,
         password,
+
         options:{
             data:{full_name:name}
         }
+
     });
 
     if(error){
+
         message.textContent = error.message;
         return;
+
     }
 
     if(data.session){
+
         message.textContent = "Account created successfully!";
         await startApp(data.user);
+
     }else{
+
         message.textContent =
         "Account created! Please verify your email and then Login.";
+
     }
+
 }
 
 
@@ -672,23 +700,30 @@ async function login(){
     const message = document.getElementById("authMessage");
 
     if(!email || !password){
+
         message.textContent = "Enter email and password.";
         return;
+
     }
 
     message.textContent = "Logging in...";
 
     const {data,error} = await db.auth.signInWithPassword({
+
         email,
         password
+
     });
 
     if(error){
+
         message.textContent = error.message;
         return;
+
     }
 
     await startApp(data.user);
+
 }
 
 
@@ -702,11 +737,14 @@ async function logout(){
     favourites = [];
     albums = ["General"];
     currentUser = null;
+    currentAlbum = "General";
+    albumFilter = null;
 
     document.getElementById("app").classList.add("hidden");
     document.getElementById("authScreen").classList.remove("hidden");
 
     showLogin();
+
 }
 
 
@@ -717,20 +755,28 @@ async function checkSession(){
     const {data,error} = await db.auth.getSession();
 
     if(error){
+
         console.error(error);
         return;
+
     }
 
     if(data.session){
+
         await startApp(data.session.user);
+
     }
+
 }
+
 
 db.auth.onAuthStateChange((event,session)=>{
 
     if(event === "SIGNED_OUT"){
+
         document.getElementById("app").classList.add("hidden");
         document.getElementById("authScreen").classList.remove("hidden");
+
     }
 
 });
@@ -749,10 +795,11 @@ async function startApp(user){
     "Welcome, " + (user.user_metadata.full_name || user.email);
 
     await loadMemories();
+
 }
 
 
-// LOAD ALBUMS, FAVOURITES AND FILES
+// LOAD MEMORIES
 
 async function loadMemories(){
 
@@ -762,7 +809,7 @@ async function loadMemories(){
     albums = ["General"];
     favourites = [];
 
-    // Load albums from database
+    // LOAD DATABASE ALBUMS
 
     const {data:albumData,error:albumError} = await db
     .from("albums")
@@ -770,35 +817,43 @@ async function loadMemories(){
     .eq("user_id",currentUser.id);
 
     if(albumError){
+
         setStatus("Album loading error: " + albumError.message);
         console.error(albumError);
         return;
+
     }
 
-    // Load old Storage folders also, for compatibility
+    // LOAD STORAGE FOLDERS
 
     const {data:folders,error:folderError} = await db.storage
     .from(BUCKET)
     .list(currentUser.id,{limit:1000});
 
     if(folderError){
+
         setStatus("Storage error: " + folderError.message);
         return;
+
     }
 
     const folderNames = (folders || [])
     .filter(item => item.id === null)
     .map(item => item.name);
 
-    const databaseAlbums = (albumData || []).map(item => item.name);
+    const databaseAlbums = (albumData || [])
+    .map(item => item.name);
 
     albums = [...new Set([
+
         "General",
         ...databaseAlbums,
         ...folderNames
+
     ])];
 
-    // Sync old albums into database
+
+    // SYNC OLD ALBUMS
 
     const missingAlbums = folderNames.filter(
         name => !databaseAlbums.includes(name)
@@ -807,29 +862,46 @@ async function loadMemories(){
     if(missingAlbums.length){
 
         const {error} = await db.from("albums").insert(
+
             missingAlbums.map(name=>({
+
                 user_id:currentUser.id,
                 name:name
+
             }))
+
         );
 
-        if(error) console.error("Album sync:",error);
+        if(error){
+
+            console.error("Album sync:",error);
+
+        }
+
     }
 
-    // Ensure General album exists in database
+
+    // ENSURE GENERAL ALBUM
 
     if(!databaseAlbums.includes("General")){
 
         const {error} = await db.from("albums").insert({
+
             user_id:currentUser.id,
             name:"General"
+
         });
 
-        if(error) console.error("General album:",error);
+        if(error){
+
+            console.error("General album:",error);
+
+        }
+
     }
 
 
-    // Load favourites from database
+    // LOAD FAVOURITES
 
     const {data:favData,error:favError} = await db
     .from("favourites")
@@ -837,14 +909,17 @@ async function loadMemories(){
     .eq("user_id",currentUser.id);
 
     if(favError){
+
         setStatus("Favourites error: " + favError.message);
         return;
+
     }
 
-    favourites = (favData || []).map(item=>item.file_path);
+    favourites = (favData || [])
+    .map(item=>item.file_path);
 
 
-    // Load files from each album
+    // LOAD FILES
 
     for(const album of albums){
 
@@ -853,14 +928,18 @@ async function loadMemories(){
         .list(currentUser.id + "/" + album,{limit:1000});
 
         if(listError){
+
             console.error(listError);
             continue;
+
         }
 
         for(const item of (list || [])){
 
             if(item.id === null || item.name === "__album__.txt"){
+
                 continue;
+
             }
 
             const path =
@@ -871,8 +950,10 @@ async function loadMemories(){
             .createSignedUrl(path,3600);
 
             if(urlError){
+
                 console.error(urlError);
                 continue;
+
             }
 
             files.push({
@@ -886,11 +967,15 @@ async function loadMemories(){
                 id:path
 
             });
+
         }
+
     }
 
     setStatus("");
+
     render();
+
 }
 
 
@@ -898,13 +983,21 @@ async function loadMemories(){
 
 async function uploadFiles(selected){
 
-    if(!selected || !selected.length || !currentUser) return;
+    if(!selected || !selected.length || !currentUser){
+
+        return;
+
+    }
+
+    let uploaded = 0;
 
     for(const file of Array.from(selected)){
 
         if(!file.type.startsWith("image/") &&
            !file.type.startsWith("video/")){
+
             continue;
+
         }
 
         const safeName = file.name.replace(
@@ -921,21 +1014,31 @@ async function uploadFiles(selected){
         const {error} = await db.storage
         .from(BUCKET)
         .upload(path,file,{
+
             cacheControl:"3600",
             upsert:false,
             contentType:file.type
+
         });
 
         if(error){
+
             alert("Upload failed: " + error.message);
+
+        }else{
+
+            uploaded++;
+
         }
+
     }
 
     document.getElementById("fileInput").value = "";
 
     await loadMemories();
 
-    setStatus("Upload completed!");
+    setStatus(uploaded + " file(s) uploaded successfully!");
+
 }
 
 
@@ -956,11 +1059,23 @@ function render(){
     document.getElementById("storage").innerText =
     (size/1024/1024).toFixed(2) + " MB";
 
-    gallery("homeGallery",files.slice().reverse().slice(0,8));
 
-    gallery("photoGallery",photos);
+    gallery(
+        "homeGallery",
+        files.slice().reverse().slice(0,8)
+    );
 
-    gallery("videoGallery",videos);
+    gallery(
+        "photoGallery",
+        albumFilter
+        ? photos.filter(f=>f.album === albumFilter)
+        : photos
+    );
+
+    gallery(
+        "videoGallery",
+        videos
+    );
 
     gallery(
         "favoriteGallery",
@@ -968,6 +1083,7 @@ function render(){
     );
 
     renderAlbums();
+
 }
 
 
@@ -982,17 +1098,23 @@ function gallery(id,list){
     if(!list.length){
 
         box.innerHTML = `
+
         <div class="empty">
+
             <h2>✦ No Memories Yet</h2>
+
             <p>Your beautiful memories will appear here.</p>
+
         </div>`;
 
         return;
+
     }
 
     list.forEach(f=>{
 
         const card = document.createElement("div");
+
         card.className = "card";
 
         let media;
@@ -1000,6 +1122,7 @@ function gallery(id,list){
         if(f.type.startsWith("video/")){
 
             media = document.createElement("video");
+
             media.src = f.url;
             media.controls = true;
             media.preload = "metadata";
@@ -1007,6 +1130,7 @@ function gallery(id,list){
         }else{
 
             media = document.createElement("img");
+
             media.src = f.url;
             media.loading = "lazy";
 
@@ -1015,14 +1139,17 @@ function gallery(id,list){
         card.appendChild(media);
 
         const info = document.createElement("div");
+
         info.className = "card-info";
 
         const title = document.createElement("p");
+
         title.textContent = f.name;
 
         info.appendChild(title);
 
         const actions = document.createElement("div");
+
         actions.className = "actions";
 
         const fav = document.createElement("button");
@@ -1032,25 +1159,35 @@ function gallery(id,list){
 
         fav.onclick = ()=>toggleFavorite(f.id);
 
+
         const download = document.createElement("button");
+
         download.textContent = "⬇";
+
         download.onclick = ()=>downloadFile(f);
 
+
         const del = document.createElement("button");
+
         del.textContent = "🗑";
+
         del.onclick = ()=>deleteFile(f);
+
 
         actions.append(fav,download,del);
 
         info.appendChild(actions);
+
         card.appendChild(info);
+
         box.appendChild(card);
 
     });
+
 }
 
 
-// CLOUD FAVOURITES
+// FAVOURITES
 
 async function toggleFavorite(id){
 
@@ -1065,8 +1202,10 @@ async function toggleFavorite(id){
         .eq("file_path",id);
 
         if(error){
+
             alert("Could not remove favourite: " + error.message);
             return;
+
         }
 
         favourites = favourites.filter(x=>x!==id);
@@ -1076,35 +1215,65 @@ async function toggleFavorite(id){
         const {error} = await db
         .from("favourites")
         .insert({
+
             user_id:currentUser.id,
             file_path:id
+
         });
 
         if(error){
+
             alert("Could not save favourite: " + error.message);
             return;
+
         }
 
         favourites.push(id);
+
     }
 
     render();
+
 }
 
 
 // DOWNLOAD
 
-function downloadFile(f){
+async function downloadFile(f){
 
-    const a = document.createElement("a");
+    try{
 
-    a.href = f.url;
-    a.download = f.name;
-    a.target = "_blank";
+        const response = await fetch(f.url);
 
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+        if(!response.ok){
+
+            throw new Error("Download failed");
+
+        }
+
+        const blob = await response.blob();
+
+        const link = document.createElement("a");
+
+        const objectURL = URL.createObjectURL(blob);
+
+        link.href = objectURL;
+        link.download = f.name;
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        URL.revokeObjectURL(objectURL);
+
+    }catch(error){
+
+        alert("Download error: " + error.message);
+
+    }
+
 }
 
 
@@ -1112,34 +1281,40 @@ function downloadFile(f){
 
 async function deleteFile(f){
 
-    if(!confirm("Delete this memory permanently?")) return;
+    const confirmDelete = confirm(
+        "Are you sure you want to delete this memory?"
+    );
 
-    setStatus("Deleting...");
+    if(!confirmDelete){
+
+        return;
+
+    }
+
+    setStatus("Deleting memory...");
 
     const {error} = await db.storage
     .from(BUCKET)
     .remove([f.path]);
 
     if(error){
+
         alert("Delete failed: " + error.message);
+        setStatus("");
         return;
+
     }
 
-    // Remove from cloud favourites too
-
-    const {error:favError} = await db
+    await db
     .from("favourites")
     .delete()
     .eq("user_id",currentUser.id)
     .eq("file_path",f.id);
 
-    if(favError){
-        console.error(favError);
-    }
-
     await loadMemories();
 
-    setStatus("Memory deleted.");
+    setStatus("Memory deleted successfully!");
+
 }
 
 
@@ -1147,41 +1322,144 @@ async function deleteFile(f){
 
 async function createAlbum(){
 
-    let name = prompt("Enter album name:");
+    const name = prompt("Enter your new album name:");
 
-    if(!name) return;
+    if(!name){
 
-    name = name.trim();
+        return;
 
-    if(!name) return;
+    }
 
-    if(name.includes("/") || name==="." || name===".."){
+    const albumName = name.trim();
+
+    if(!albumName){
+
         alert("Please enter a valid album name.");
         return;
+
     }
 
-    if(albums.some(a=>a.toLowerCase()===name.toLowerCase())){
-        alert("Album already exists!");
+    if(albumName.toLowerCase() === "general"){
+
+        alert("General album already exists.");
         return;
+
     }
+
+    if(albums.some(a=>a.toLowerCase() === albumName.toLowerCase())){
+
+        alert("This album already exists.");
+        return;
+
+    }
+
+    setStatus("Creating album...");
 
     const {error} = await db
     .from("albums")
     .insert({
+
         user_id:currentUser.id,
-        name:name
+        name:albumName
+
     });
 
     if(error){
+
         alert("Could not create album: " + error.message);
+        setStatus("");
         return;
+
     }
 
-    albums.push(name);
+    currentAlbum = albumName;
 
-    renderAlbums();
+    albums.push(albumName);
 
-    alert("Album created successfully!");
+    render();
+
+    setStatus("Album created successfully!");
+
+}
+
+
+// DELETE ALBUM
+
+async function deleteAlbum(albumName){
+
+    if(albumName === "General"){
+
+        alert("General album cannot be deleted.");
+        return;
+
+    }
+
+    const albumFiles = files.filter(
+        f => f.album === albumName
+    );
+
+    if(albumFiles.length > 0){
+
+        alert(
+            "This album contains " +
+            albumFiles.length +
+            " memories. Please delete or move them first."
+        );
+
+        return;
+
+    }
+
+    const confirmDelete = confirm(
+
+        "Are you sure you want to delete '" +
+        albumName +
+        "' album?"
+
+    );
+
+    if(!confirmDelete){
+
+        return;
+
+    }
+
+    setStatus("Deleting album...");
+
+    const {error} = await db
+    .from("albums")
+    .delete()
+    .eq("user_id",currentUser.id)
+    .eq("name",albumName);
+
+    if(error){
+
+        alert("Could not delete album: " + error.message);
+        setStatus("");
+        return;
+
+    }
+
+    albums = albums.filter(a=>a !== albumName);
+
+    if(currentAlbum === albumName){
+
+        currentAlbum = "General";
+
+    }
+
+    if(albumFilter === albumName){
+
+        albumFilter = null;
+
+        page("albums");
+
+    }
+
+    render();
+
+    setStatus("Album deleted successfully!");
+
 }
 
 
@@ -1193,76 +1471,119 @@ function renderAlbums(){
 
     box.innerHTML = "";
 
-    albums.forEach(name=>{
+    albums.forEach(album=>{
 
-        const div = document.createElement("div");
-        div.className = "album";
+        const card = document.createElement("div");
+
+        card.className = "album";
 
         const icon = document.createElement("div");
+
         icon.className = "icon";
+
         icon.textContent = "📁";
 
-        const title = document.createElement("p");
-        title.textContent = name;
+        const name = document.createElement("p");
 
-        const count = document.createElement("small");
-        count.style.color = "#b7a9c9";
+        name.textContent = album;
 
-        count.textContent =
-        files.filter(f=>f.album===name).length + " memories";
+        const count = files.filter(
+            f=>f.album === album
+        ).length;
 
-        div.append(icon,title,count);
+        const total = document.createElement("small");
 
-        div.onclick = ()=>{
+        total.style.color = "#c7bdd7";
 
-            currentAlbum = name;
+        total.textContent = count + " Memories";
+
+        card.append(icon,name,total);
+
+
+        card.onclick = ()=>{
+
+            currentAlbum = album;
+
+            albumFilter = album;
 
             page("photos");
 
-            gallery(
-                "photoGallery",
-                files.filter(f=>
-                    f.album===name &&
-                    f.type.startsWith("image/")
-                )
-            );
-
         };
 
-        box.appendChild(div);
+
+        if(album !== "General"){
+
+            const del = document.createElement("button");
+
+            del.textContent = "🗑 Delete Album";
+
+            del.style.marginTop = "15px";
+            del.style.padding = "8px 12px";
+            del.style.borderRadius = "8px";
+            del.style.border = "1px solid #b98a48";
+            del.style.background = "#211936";
+            del.style.color = "#e8c77e";
+
+            del.onclick = (event)=>{
+
+                event.stopPropagation();
+
+                deleteAlbum(album);
+
+            };
+
+            card.appendChild(del);
+
+        }
+
+        box.appendChild(card);
 
     });
+
 }
 
 
-// NAVIGATION
+// PAGE NAVIGATION
 
 function page(name,button){
 
-    document.querySelectorAll("main section").forEach(s=>{
-        s.classList.add("hidden");
+    document.querySelectorAll("main section").forEach(section=>{
+
+        section.classList.add("hidden");
+
     });
 
     document.getElementById(name).classList.remove("hidden");
 
     if(button){
 
-        document.querySelectorAll(".menu button").forEach(b=>{
-            b.classList.remove("active");
+        document.querySelectorAll(".menu button").forEach(btn=>{
+
+            btn.classList.remove("active");
+
         });
 
         button.classList.add("active");
+
+        if(name === "photos"){
+
+            albumFilter = null;
+
+        }
+
     }
 
-    render();
-}
+    if(name === "photos" && albumFilter){
 
+        gallery(
+            "photoGallery",
+            files.filter(f=>
+                f.type.startsWith("image/") &&
+                f.album === albumFilter
+            )
+        );
 
-// STATUS
-
-function setStatus(message){
-
-    document.getElementById("status").textContent = message;
+    }
 
 }
 
@@ -1272,5 +1593,7 @@ function setStatus(message){
 checkSession();
 
 </script>
+
+
 </body>
 </html>
