@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Private Memories</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,sans-serif}
+
+:root{
+--gold:#e8c77e;
+--purple:#211936;
+--card:#211a32;
+}
+
+body{background:#100d20;color:#fff;min-height:100vh}
+
+button,input{font:inherit}
+
+button{cursor:pointer}
+
+.hidden{display:none!important}
+
+#authScreen{
+min-height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
+background:radial-gradient(circle at top,#49345e,#100d20 65%);
+}
+
+.auth-card{
+width:100%;
+max-width:420px;
+padding:35px;
+border:1px solid #705b7e;
+border-radius:22px;
+background:rgba(33,25,54,.92);
+box-shadow:0 20px 60px #0008;
+}
+
+.auth-logo{
+text-align:center;
+font-size:25px;
+font-weight:bold;
+color:var(--gold);
+margin-bottom:10px;
+}
+
+.auth-subtitle{
+text-align:center;
+color:#c0b4ce;
+font-size:13px;
+margin-bottom:30px;
+}
+
+.auth-card h2{
+text-align:center;
+margin-bottom:22px;
+}
+
+.auth-card input{
+width:100%;
+padding:14px;
+margin-bottom:14px;
+border-radius:9px;
+border:1px solid #594767;
+background:#171126;
+color:white;
+outline:none;
+}
+
+.auth-card input:focus{border-color:var(--gold)}
+
+.auth-btn{
+width:100%;
+padding:14px;
+border:0;
+border-radius:9px;
+background:linear-gradient(135deg,#f4d997,#b98a48);
+color:#21152b;
+font-weight:bold;
+margin-top:5px;
+}
+
+.auth-switch{
+text-align:center;
+margin-top:20px;
+font-size:13px;
+color:#c7bdd7;
+}
+
+.auth-switch span{
+color:var(--gold);
+cursor:pointer;
+}
+
+#authMessage{
+margin-top:15px;
+text-align:center;
+font-size:13px;
+color:var(--gold);
+line-height:1.5;
+}
+
+.app{display:flex;min-height:100vh}
+
+.sidebar{
+width:245px;
+background:#19132a;
+padding:30px 18px;
+border-right:1px solid #443653;
+position:fixed;
+height:100vh;
+}
+
+.logo{
+font-size:21px;
+font-weight:bold;
+color:var(--gold);
+margin-bottom:45px;
+line-height:1.6;
+}
+
+.logo span{
+display:block;
+font-size:11px;
+letter-spacing:5px;
+color:white;
+}
+
+.menu button{
+display:block;
+width:100%;
+padding:15px;
+margin-bottom:8px;
+border:0;
+border-radius:10px;
+background:transparent;
+color:#c7bdd7;
+text-align:left;
+font-size:15px;
+}
+
+.menu button:hover,.menu button.active{
+background:linear-gradient(100deg,#594174,#302443);
+color:var(--gold);
+}
+
+.sidebar-bottom{
+position:absolute;
+bottom:25px;
+color:#b7a9c9;
+font-size:12px;
+}
+
+.main{
+margin-left:245px;
+width:calc(100% - 245px);
+padding:35px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:15px;
+margin-bottom:35px;
+}
+
+.header h1{font-size:27px}
+
+.header p{
+color:#aaa0bb;
+margin-top:8px;
+}
+
+.gold{color:var(--gold)}
+
+.btn{
+border:none;
+border-radius:10px;
+padding:13px 20px;
+background:linear-gradient(135deg,#f4d997,#b98a48);
+color:#21152b;
+font-weight:bold;
+}
+
+.btn:hover{transform:translateY(-2px)}
+
+.logout-btn{
+background:#392b49;
+color:#f0d99e;
+border:1px solid #705b7e;
+padding:10px 15px;
+border-radius:9px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+margin-bottom:35px;
+}
+
+.stat{
+background:linear-gradient(135deg,#352747,#20182f);
+border:1px solid #594767;
+padding:25px;
+border-radius:17px;
+}
+
+.stat p{color:#bcb0ce;font-size:14px}
+
+.stat h2{
+font-size:29px;
+color:var(--gold);
+margin-top:15px;
+}
+
+.section-title{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin:30px 0 20px;
+gap:10px;
+}
+
+.section-title h2{font-size:21px}
+
+.gallery{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:17px;
+}
+
+.card{
+background:var(--card);
+border:1px solid #443653;
+border-radius:14px;
+overflow:hidden;
+}
+
+.card img,.card video{
+width:100%;
+height:170px;
+object-fit:cover;
+display:block;
+background:#171126;
+}
+
+.card-info{padding:12px}
+
+.card-info p{
+font-size:12px;
+color:#c8bed5;
+overflow-wrap:anywhere;
+}
+
+.actions{
+display:flex;
+justify-content:space-between;
+margin-top:12px;
+}
+
+.actions button{
+background:transparent;
+border:0;
+color:var(--gold);
+font-size:17px;
+}
+
+.empty{
+grid-column:1/-1;
+padding:65px 15px;
+text-align:center;
+border:1px dashed #685479;
+border-radius:15px;
+color:#b9aeca;
+}
+
+.empty h2{
+color:var(--gold);
+margin-bottom:12px;
+}
+
+.album-grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:18px;
+}
+
+.album{
+padding:30px 15px;
+border-radius:15px;
+border:1px solid #634d71;
+background:linear-gradient(135deg,#39294d,#21182f);
+text-align:center;
+cursor:pointer;
+}
+
+.album .icon{font-size:35px;margin-bottom:12px}
+
+.album p{color:var(--gold)}
+
+.footer{
+margin-top:55px;
+padding:20px;
+text-align:center;
+color:#786d8b;
+font-size:12px;
+border-top:1px solid #392d49;
+}
+
+#fileInput{display:none}
+
+.status{
+color:#c7bdd7;
+font-size:13px;
+margin:10px 0;
+}
+
+@media(max-width:850px){
+
+.sidebar{
+width:75px;
+padding:20px 7px;
+}
+
+.logo{
+font-size:10px;
+text-align:center;
+}
+
+.logo span{
+font-size:7px;
+letter-spacing:1px;
+}
+
+.menu button{
+font-size:10px;
+text-align:center;
+padding:13px 3px;
+}
+
+.sidebar-bottom{
+font-size:8px;
+left:5px;
+}
+
+.main{
+margin-left:75px;
+width:calc(100% - 75px);
+padding:20px 12px;
+}
+
+.stats{
+grid-template-columns:1fr;
+gap:10px;
+}
+
+.gallery{
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:10px;
+}
+
+.album-grid{
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+.card img,.card video{height:130px}
+
+.header h1{font-size:18px}
+
+.header p{font-size:11px}
+
+.header .btn{padding:10px;font-size:11px}
+
+.section-title h2{font-size:17px}
+
+.stat{padding:18px}
+
+.stat h2{font-size:23px}
+
+.auth-card{padding:25px 20px}
+
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN / SIGNUP -->
+
+<div id="authScreen">
+
+<div class="auth-card">
+
+<div class="auth-logo">✦ MY PRIVATE MEMORIES</div>
+
+<p class="auth-subtitle">Your beautiful moments, your personal space.</p>
+
+<div id="loginBox">
+
+<h2>Welcome Back</h2>
+
+<input type="email" id="loginEmail" placeholder="Email Address">
+
+<input type="password" id="loginPassword" placeholder="Password">
+
+<button class="auth-btn" onclick="login()">Login</button>
+
+<div class="auth-switch">
+Don't have an account?
+<span onclick="showSignup()">Sign Up</span>
+</div>
+
+</div>
+
+<div id="signupBox" class="hidden">
+
+<h2>Create Account</h2>
+
+<input type="text" id="signupName" placeholder="Your Name">
+
+<input type="email" id="signupEmail" placeholder="Email Address">
+
+<input type="password" id="signupPassword" placeholder="Create Password">
+
+<button class="auth-btn" onclick="signup()">Create Account</button>
+
+<div class="auth-switch">
+Already have an account?
+<span onclick="showLogin()">Login</span>
+</div>
+
+</div>
+
+<p id="authMessage"></p>
+
+</div>
+</div>
+
+
+<!-- MAIN WEBSITE -->
+
+<div class="app hidden" id="app">
+
+<aside class="sidebar">
+
+<div class="logo">
+✦ MY PRIVATE
+<span>MEMORIES</span>
+</div>
+
+<div class="menu">
+
+<button class="active" onclick="page('home',this)">🏠 Home</button>
+
+<button onclick="page('photos',this)">📸 Photos</button>
+
+<button onclick="page('videos',this)">🎬 Videos</button>
+
+<button onclick="page('albums',this)">📁 Albums</button>
+
+<button onclick="page('favorites',this)">⭐ Favourites</button>
+
+</div>
+
+<div class="sidebar-bottom">
+🔒 Your Personal Gallery
+</div>
+
+</aside>
+
+
+<main class="main">
+
+<header class="header">
+
+<div>
+<h1>Welcome to <span class="gold">Your Memories</span></h1>
+<p id="welcomeText">Your beautiful moments, your personal space.</p>
+</div>
+
+<div>
+<button class="btn" onclick="document.getElementById('fileInput').click()">+ Upload</button>
+<button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="uploadFiles(this.files)">
+
+</header>
+
+<p id="status" class="status"></p>
+
+<section id="home">
+
+<div class="stats">
+
+<div class="stat">
+<p>📸 Total Photos</p>
+<h2 id="photoCount">0</h2>
+</div>
+
+<div class="stat">
+<p>🎬 Total Videos</p>
+<h2 id="videoCount">0</h2>
+</div>
+
+<div class="stat">
+<p>💾 Storage Used</p>
+<h2 id="storage">0 MB</h2>
+</div>
+
+</div>
+
+<div class="section-title">
+<h2>✨ Recent Memories</h2>
+</div>
+
+<div class="gallery" id="homeGallery"></div>
+
+</section>
+
+
+<section id="photos" class="hidden">
+
+<div class="section-title">
+<h2>📸 My Photos</h2>
+</div>
+
+<div class="gallery" id="photoGallery"></div>
+
+</section>
+
+
+<section id="videos" class="hidden">
+
+<div class="section-title">
+<h2>🎬 My Videos</h2>
+</div>
+
+<div class="gallery" id="videoGallery"></div>
+
+</section>
+
+
+<section id="albums" class="hidden">
+
+<div class="section-title">
+<h2>📁 My Albums</h2>
+<button class="btn" onclick="createAlbum()">+ New Album</button>
+</div>
+
+<div class="album-grid" id="albumGrid"></div>
+
+</section>
+
+
+<section id="favorites" class="hidden">
+
+<div class="section-title">
+<h2>⭐ Favourite Memories</h2>
+</div>
+
+<div class="gallery" id="favoriteGallery"></div>
+
+</section>
+
+<div class="footer">
+✦ MY PRIVATE MEMORIES · YOUR WORLD · YOUR PRIVACY ✦
+</div>
+
+</main>
+</div>
+
+
+<script>
+
+// 1. SUPABASE DETAILS
+
+const SUPABASE_URL = "https://fudehziykkycjnzfuojt.supabase.co";
+
+const SUPABASE_KEY = "sb_publishable_84MRioR2c0aI3JwDEz3Yaw_HCbDTjLV";
+
+const BUCKET = "memories";
+
+const db = window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+
+// 2. APP DATA
+
+let files = [];
+let albums = ["General"];
+let currentAlbum = "General";
+let favourites = [];
+let currentUser = null;
+
+
+// 3. AUTH SCREEN
+
+function showSignup(){
+
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("signupBox").classList.remove("hidden");
+document.getElementById("authMessage").textContent="";
+
+}
+
+function showLogin(){
+
+document.getElementById("signupBox").classList.add("hidden");
+document.getElementById("loginBox").classList.remove("hidden");
+document.getElementById("authMessage").textContent="";
+
+}
+
+
+// 4. SIGNUP
+
+async function signup(){
+
+const name = document.getElementById("signupName").value.trim();
+const email = document.getElementById("signupEmail").value.trim();
+const password = document.getElementById("signupPassword").value;
+
+const message = document.getElementById("authMessage");
+
+if(!name || !email || !password){
+message.textContent="Please fill all details.";
+return;
+}
+
+if(password.length < 6){
+message.textContent="Password must contain at least 6 characters.";
+return;
+}
+
+message.textContent="Creating your account...";
+
+const {data,error} = await db.auth.signUp({
+
+email:email,
+password:password,
+options:{
+data:{full_name:name}
+}
+
+});
+
+if(error){
+message.textContent=error.message;
+return;
+}
+
+if(data.session){
+message.textContent="Account created successfully!";
+}else{
+message.textContent="Account created! Please verify your email and then Login.";
+}
+
+}
+
+
+// 5. LOGIN
+
+async function login(){
+
+const email = document.getElementById("loginEmail").value.trim();
+const password = document.getElementById("loginPassword").value;
+
+const message = document.getElementById("authMessage");
+
+if(!email || !password){
+message.textContent="Enter email and password.";
+return;
+}
+
+message.textContent="Logging in...";
+
+const {data,error} = await db.auth.signInWithPassword({
+email:email,
+password:password
+});
+
+if(error){
+message.textContent=error.message;
+return;
+}
+
+await startApp(data.user);
+
+}
+
+
+// 6. LOGOUT
+
+async function logout(){
+
+await db.auth.signOut();
+
+files=[];
+currentUser=null;
+
+document.getElementById("app").classList.add("hidden");
+document.getElementById("authScreen").classList.remove("hidden");
+
+showLogin();
+
+}
+
+
+// 7. AUTH SESSION CHECK
+
+async function checkSession(){
+
+const {data,error} = await db.auth.getSession();
+
+if(error){
+console.error(error);
+return;
+}
+
+if(data.session){
+await startApp(data.session.user);
+}
+
+}
+
+db.auth.onAuthStateChange((event,session)=>{
+
+if(event==="SIGNED_OUT"){
+document.getElementById("app").classList.add("hidden");
+document.getElementById("authScreen").classList.remove("hidden");
+}
+
+});
+
+
+// 8. START APP
+
+async function startApp(user){
+
+currentUser=user;
+
+document.getElementById("authScreen").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+
+document.getElementById("welcomeText").textContent=
+"Welcome, "+(user.user_metadata.full_name || user.email);
+
+favourites=JSON.parse(
+localStorage.getItem("favorites_"+user.id) || "[]"
+);
+
+await loadMemories();
+
+}
+
+
+// 9. LOAD ALBUMS AND FILES
+
+async function loadMemories(){
+
+setStatus("Loading your memories...");
+
+files=[];
+albums=["General"];
+
+const {data:folders,error} = await db.storage
+.from(BUCKET)
+.list(currentUser.id,{limit:1000});
+
+if(error){
+setStatus("Could not load albums: "+error.message);
+render();
+return;
+}
+
+const folderNames=(folders || [])
+.filter(item=>item.id===null)
+.map(item=>item.name);
+
+albums=[...new Set(["General",...folderNames])];
+
+for(const album of albums){
+
+const {data:list,error:listError}=await db.storage
+.from(BUCKET)
+.list(currentUser.id+"/"+album,{limit:1000});
+
+if(listError){
+console.error(listError);
+continue;
+}
+
+for(const item of (list || [])){
+
+if(item.id===null || item.name==="__album__.txt")continue;
+
+const path=currentUser.id+"/"+album+"/"+item.name;
+
+const {data:urlData,error:urlError}=await db.storage
+.from(BUCKET)
+.createSignedUrl(path,3600);
+
+if(urlError){
+console.error(urlError);
+continue;
+}
+
+const mime=item.metadata?.mimetype || "";
+
+files.push({
+
+name:item.name,
+type:mime,
+size:item.metadata?.size || 0,
+url:urlData.signedUrl,
+path:path,
+album:album,
+id:path
+
+});
+
+}
+
+}
+
+setStatus("");
+render();
+
+}
+
+
+// 10. UPLOAD FILES
+
+async function uploadFiles(selected){
+
+if(!selected || !selected.length)return;
+
+for(const file of Array.from(selected)){
+
+if(!file.type.startsWith("image/") &&
+!file.type.startsWith("video/"))continue;
+
+const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+
+const path=currentUser.id+"/"+currentAlbum+"/"+Date.now()+"_"+safeName;
+
+setStatus("Uploading "+file.name+"...");
+
+const {error}=await db.storage
+.from(BUCKET)
+.upload(path,file,{
+cacheControl:"3600",
+upsert:false,
+contentType:file.type
+});
+
+if(error){
+alert("Upload failed: "+error.message);
+}else{
+console.log("Uploaded:",file.name);
+}
+
+}
+
+document.getElementById("fileInput").value="";
+
+await loadMemories();
+
+setStatus("Upload completed!");
+
+}
+
+
+// 11. RENDER
+
+function render(){
+
+const photos=files.filter(f=>f.type.startsWith("image/"));
+
+const videos=files.filter(f=>f.type.startsWith("video/"));
+
+document.getElementById("photoCount").innerText=photos.length;
+
+document.getElementById("videoCount").innerText=videos.length;
+
+const size=files.reduce((a,b)=>a+b.size,0);
+
+document.getElementById("storage").innerText=
+(size/1024/1024).toFixed(2)+" MB";
+
+gallery("homeGallery",files.slice().reverse().slice(0,8));
+
+gallery("photoGallery",photos);
+
+gallery("videoGallery",videos);
+
+gallery("favoriteGallery",
+files.filter(f=>favourites.includes(f.id)));
+
+renderAlbums();
+
+}
+
+
+// 12. GALLERY
+
+function gallery(id,list){
+
+const box=document.getElementById(id);
+
+box.innerHTML="";
+
+if(!list.length){
+
+box.innerHTML=`
+<div class="empty">
+<h2>✦ No Memories Yet</h2>
+<p>Your beautiful memories will appear here.</p>
+</div>`;
+
+return;
+
+}
+
+list.forEach(f=>{
+
+const card=document.createElement("div");
+card.className="card";
+
+let media;
+
+if(f.type.startsWith("video/")){
+
+media=document.createElement("video");
+media.src=f.url;
+media.controls=true;
+media.preload="metadata";
+
+}else{
+
+media=document.createElement("img");
+media.src=f.url;
+media.loading="lazy";
+
+}
+
+card.appendChild(media);
+
+const info=document.createElement("div");
+info.className="card-info";
+
+const title=document.createElement("p");
+title.textContent=f.name;
+
+info.appendChild(title);
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+const fav=document.createElement("button");
+fav.textContent=favourites.includes(f.id)?"⭐":"☆";
+fav.onclick=()=>toggleFavorite(f.id);
+
+const download=document.createElement("button");
+download.textContent="⬇";
+download.onclick=()=>downloadFile(f);
+
+const del=document.createElement("button");
+del.textContent="🗑";
+del.onclick=()=>deleteFile(f);
+
+actions.append(fav,download,del);
+
+info.appendChild(actions);
+card.appendChild(info);
+box.appendChild(card);
+
+});
+
+}
+
+
+// 13. FAVOURITES
+
+function toggleFavorite(id){
+
+if(favourites.includes(id)){
+favourites=favourites.filter(x=>x!==id);
+}else{
+favourites.push(id);
+}
+
+localStorage.setItem(
+"favorites_"+currentUser.id,
+JSON.stringify(favourites)
+);
+
+render();
+
+}
+
+
+// 14. DOWNLOAD
+
+function downloadFile(f){
+
+const a=document.createElement("a");
+
+a.href=f.url;
+a.download=f.name;
+a.target="_blank";
+
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+}
+
+
+// 15. DELETE
+
+async function deleteFile(f){
+
+if(!confirm("Delete this memory permanently?"))return;
+
+setStatus("Deleting...");
+
+const {error}=await db.storage
+.from(BUCKET)
+.remove([f.path]);
+
+if(error){
+alert("Delete failed: "+error.message);
+}else{
+
+favourites=favourites.filter(x=>x!==f.id);
+
+localStorage.setItem(
+"favorites_"+currentUser.id,
+JSON.stringify(favourites)
+);
+
+await loadMemories();
+
+setStatus("Memory deleted.");
+
+}
+
+}
+
+
+// 16. CREATE ALBUM
+
+async function createAlbum(){
+
+let name=prompt("Enter album name:");
+
+if(!name)return;
+
+name=name.trim();
+
+if(!name)return;
+
+if(name.includes("/") || name==="." || name===".."){
+alert("Please enter a valid album name.");
+return;
+}
+
+if(albums.some(a=>a.toLowerCase()===name.toLowerCase())){
+alert("Album already exists!");
+return;
+}
+
+const path=currentUser.id+"/"+name+"/__album__.txt";
+
+const {error}=await db.storage
+.from(BUCKET)
+.upload(path,new Blob(["My Private Memories"],{type:"text/plain"}),{
+upsert:false,
+contentType:"text/plain"
+});
+
+if(error){
+alert("Could not create album: "+error.message);
+return;
+}
+
+await loadMemories();
+
+}
+
+
+// 17. RENDER ALBUMS
+
+function renderAlbums(){
+
+const box=document.getElementById("albumGrid");
+
+box.innerHTML="";
+
+albums.forEach(name=>{
+
+const div=document.createElement("div");
+div.className="album";
+
+const icon=document.createElement("div");
+icon.className="icon";
+icon.textContent="📁";
+
+const title=document.createElement("p");
+title.textContent=name;
+
+const count=document.createElement("small");
+count.style.color="#b7a9c9";
+
+count.textContent=
+files.filter(f=>f.album===name).length+" memories";
+
+div.append(icon,title,count);
+
+div.onclick=()=>{
+
+currentAlbum=name;
+
+page("photos");
+
+gallery(
+"photoGallery",
+files.filter(f=>
+f.album===name &&
+f.type.startsWith("image/")
+)
+);
+
+};
+
+box.appendChild(div);
+
+});
+
+}
+
+
+// 18. NAVIGATION
+
+function page(name,button){
+
+document.querySelectorAll("main section").forEach(s=>{
+s.classList.add("hidden");
+});
+
+document.getElementById(name).classList.remove("hidden");
+
+if(button){
+
+document.querySelectorAll(".menu button").forEach(b=>{
+b.classList.remove("active");
+});
+
+button.classList.add("active");
+
+}
+
+render();
+
+}
+
+
+// 19. STATUS MESSAGE
+
+function setStatus(message){
+
+document.getElementById("status").textContent=message;
+
+}
+
+
+// 20. INITIALIZE
+
+checkSession();
+
+</script>
+
+</body>
+</html>
